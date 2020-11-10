@@ -522,7 +522,7 @@ function DashAdapter() {
 
                 // short-circuit for attribute selectors
                 if (operation.xpath.findsAttribute()) {
-                    switch (operation.type) {
+                    switch (operation.action) {
                         case 'add':
                         case 'replace':
                             // add and replace are just setting the value
@@ -541,7 +541,7 @@ function DashAdapter() {
                 let insertBefore = (operation.position == 'prepend' || operation.position == 'before');
 
                 // perform removal operation first, we have already captured the appropriate relative position
-                if (operation.type == 'remove' || operation.type == 'replace') {
+                if (operation.action == 'remove' || operation.action == 'replace') {
                     // note that we ignore the ws attribute of patch operations as it does not effect parsed mpd operations
 
                     // purge the directly named entity
@@ -567,39 +567,44 @@ function DashAdapter() {
                 // place of a replaced element while the add case allows an arbitrary number of children.
                 // Due to the both operations requiring the same insertion logic they have been combined here and we will
                 // not enforce single child operations for replace, assertions should be made at patch parse time if necessary
-                if (operation.type == 'add' || operation.type == 'replace') {
-                    // value will be an object with element name keys pointing to arrays of objects
-                    Object.keys(operation.value).forEach((insert) => {
-                        let insertNodes = operation.value[insert];
+                if (operation.action == 'add' || operation.action == 'replace') {
+                    if (operation.type.startsWith('@')) {
+                        let attrKey = operation.type.substring(1);
+                        target[attrKey] = operation.value;
+                    } else {
+                        // value will be an object with element name keys pointing to arrays of objects
+                        Object.keys(operation.value).forEach((insert) => {
+                            let insertNodes = operation.value[insert];
 
-                        let updatedNodes = target[insert + '_asArray'] || [];
-                        if (updatedNodes.length === 0 && target[insert]) {
-                            updatedNodes.push(target[insert]);
-                        }
-
-                        if (updatedNodes.length === 0) {
-                            // no original nodes for this element type
-                            updatedNodes = insertNodes;
-                        } else {
-                            // compute the position we need to insert at, default to end of set
-                            let position = updatedNodes.length;
-                            if (insert == name && relativePosition != -1) {
-                                // if the inserted element matches the operation target (not leaf) and there is a relative position we
-                                // want the insert position to be set such that our insertion is relative to original position
-                                position = relativePosition + (insertBefore ? 0 : 1);
-                            } else {
-                                // otherwise we are in an add append/prepend case or replace case that removed the target name completely
-                                position = insertBefore ? 0 : updatedNodes.length;
+                            let updatedNodes = target[insert + '_asArray'] || [];
+                            if (updatedNodes.length === 0 && target[insert]) {
+                                updatedNodes.push(target[insert]);
                             }
 
-                            // we dont have to perform element removal for the replace case as that was done above
-                            updatedNodes.splice.apply(updatedNodes, [position, 0].concat(insertNodes));
-                        }
+                            if (updatedNodes.length === 0) {
+                                // no original nodes for this element type
+                                updatedNodes = insertNodes;
+                            } else {
+                                // compute the position we need to insert at, default to end of set
+                                let position = updatedNodes.length;
+                                if (insert == name && relativePosition != -1) {
+                                    // if the inserted element matches the operation target (not leaf) and there is a relative position we
+                                    // want the insert position to be set such that our insertion is relative to original position
+                                    position = relativePosition + (insertBefore ? 0 : 1);
+                                } else {
+                                    // otherwise we are in an add append/prepend case or replace case that removed the target name completely
+                                    position = insertBefore ? 0 : updatedNodes.length;
+                                }
 
-                        // now we properly reset the element keys on the target to match parsing semantics
-                        target[insert + '_asArray'] = updatedNodes;
-                        target[insert] = updatedNodes.length == 1 ? updatedNodes[0] : updatedNodes;
-                    });
+                                // we dont have to perform element removal for the replace case as that was done above
+                                updatedNodes.splice.apply(updatedNodes, [position, 0].concat(insertNodes));
+                            }
+
+                            // now we properly reset the element keys on the target to match parsing semantics
+                            target[insert + '_asArray'] = updatedNodes;
+                            target[insert] = updatedNodes.length == 1 ? updatedNodes[0] : updatedNodes;
+                        });
+                    }
                 }
             });
     }

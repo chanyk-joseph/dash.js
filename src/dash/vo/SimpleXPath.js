@@ -60,7 +60,7 @@ class SimpleXPath {
                             parsed.attribute.value = parsed.attribute.value.substring(1, parsed.attribute.value.length - 1);
                         }
                     } else {
-                        parsed.position = qualifier;
+                        parsed.position = parseInt(qualifier)-1;
                     }
                 }
 

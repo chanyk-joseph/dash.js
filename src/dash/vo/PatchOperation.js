@@ -33,15 +33,16 @@
  * @ignore
  */
 class PatchOperation {
-    constructor(type, xpath, value) {
-        this.type = type;
+    constructor(action, xpath, type, value) {
+        this.action = action;
         this.xpath = xpath;
+        this.type = type
         this.value = value;
         this.position = null;
     }
 
     getMpdTarget(root) {
-        let isSiblingOperation = this.type == 'remove' || this.type == 'replace' || this.position == 'before' || this.position == 'after';
+        let isSiblingOperation = this.action == 'remove' || this.action == 'replace' || this.position == 'before' || this.position == 'after';
         return this.xpath.getMpdTarget(root, isSiblingOperation);
     }
 }

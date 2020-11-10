@@ -63,19 +63,20 @@ function PatchManifestModel() {
 
         // Go through the patch operations in order and parse their types out for usage
         return (patch.__children || []).map((node) => {
-            let type = Object.keys(node)[0];
+            let action = Object.keys(node)[0];
 
             // we only look add add/remove/replace types
-            if (type != 'add' && type != 'remove' && type != 'replace') {
-                console.log(`Ignoring node of invalid type: ${type}`);
+            if (action != 'add' && action != 'remove' && action != 'replace') {
+                console.log(`Ignoring node of invalid type: ${action}`);
                 return null;
             }
 
-            node = node[type];
+            node = node[action];
             let xpath = new SimpleXPath(node.sel);
+            let type = node.type || '';
 
             let value;
-            if (xpath.findsAttribute()) {
+            if (type.startsWith('@') || xpath.findsAttribute()) {
                 value = node.__text || '';
             } else {
                 value = node.__children.reduce((groups, child) => {
@@ -89,9 +90,9 @@ function PatchManifestModel() {
                 }, {});
             }
 
-            let operation = new PatchOperation(type, xpath, value);
+            let operation = new PatchOperation(action, xpath, type, value);
 
-            if (type == 'add') {
+            if (action == 'add') {
                 operation.position = node.pos;
             }
 
